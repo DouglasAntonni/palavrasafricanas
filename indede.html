@@ -1,0 +1,238 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Book</title>
+    <style>
+        body {
+            font-family: "Poppins", sans-serif;
+            background-color: #2e3537;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .book {
+            width: 350px;
+            height: 450px;
+            perspective: 1500px;
+            position: relative;
+            transition: transform 1s ease;
+        }
+
+        .book.opened {
+            transform: translateX(150px);
+        }
+
+        .cover, .back-cover {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #4173a5, #2a4d6e);
+            position: absolute;
+            transform-origin: left;
+            border-radius: 0 15px 15px 0;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            transition: transform 1s ease;
+        }
+
+        .cover {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: white;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+        }
+
+        .cover.opened {
+            transform: rotateY(-180deg);
+        }
+
+        .back-cover {
+            z-index: -1;
+        }
+
+        .page {
+            position: absolute;
+            width: 330px;
+            height: 430px;
+            margin: 10px;
+            background-color: white;
+            border-radius: 0 15px 15px 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            transform-origin: left;
+            transform: rotateY(0deg);
+            transition: transform 1s ease;
+            backface-visibility: hidden;
+            cursor: pointer;
+        }
+
+        .page-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            height: 100%;
+            box-sizing: border-box;
+        }
+
+        .page img {
+            width: 80%;
+            height: 60%;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .page-text {
+            text-align: center;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .page.turned {
+            transform: rotateY(-180deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="book">
+        <div class="cover">My Story Book</div>
+        <div id="pages-container"></div>
+        <div class="back-cover"></div>
+    </div>
+
+    <script>
+        const pagesData = [
+            { image: 'https://images.unsplash.com/photo-1516542076529-1ea3854896f2', text: 'A peaceful sunrise over mountains' },
+            { image: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963', text: 'Beautiful Italian countryside' },
+            { image: 'https://images.unsplash.com/photo-1523906834658-6e24ef2386f9', text: 'Venice canals at sunset' },
+            { image: 'https://images.unsplash.com/photo-1513581166391-887a96ddeafd', text: 'Japanese garden in autumn' },
+            { image: 'https://images.unsplash.com/photo-1502786129293-79981df4e689', text: 'Northern lights in Norway' }
+        ];
+
+        let currentPage = 0;
+        let isBookOpen = false;
+        let isAnimating = false;
+
+        const book = document.querySelector('.book');
+        const cover = document.querySelector('.cover');
+        const pagesContainer = document.getElementById('pages-container');
+
+        function createPage(data, index) {
+            const page = document.createElement('div');
+            page.className = 'page';
+            page.style.zIndex = pagesData.length - index;
+            
+            const content = document.createElement('div');
+            content.className = 'page-content';
+            
+            const img = document.createElement('img');
+            img.src = data.image;
+            img.alt = data.text;
+            img.loading = 'lazy';
+            
+            const text = document.createElement('p');
+            text.className = 'page-text';
+            text.textContent = data.text;
+            
+            content.appendChild(img);
+            content.appendChild(text);
+            page.appendChild(content);
+            
+            return page;
+        }
+
+        function initializeBook() {
+            pagesContainer.innerHTML = '';
+            pagesData.forEach((data, index) => {
+                const page = createPage(data, index);
+                pagesContainer.appendChild(page);
+            });
+        }
+
+        function openBook() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            isBookOpen = true;
+            book.classList.add('opened');
+            cover.classList.add('opened');
+            
+            setTimeout(() => {
+                isAnimating = false;
+            }, 1000);
+        }
+
+        function closeBook() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('turned'));
+            
+            setTimeout(() => {
+                book.classList.remove('opened');
+                cover.classList.remove('opened');
+                currentPage = 0;
+                isBookOpen = false;
+                isAnimating = false;
+            }, 500);
+        }
+
+        function turnPage(direction) {
+            if (isAnimating || !isBookOpen) return;
+            isAnimating = true;
+            
+            const pages = document.querySelectorAll('.page');
+            
+            if (direction === 'next' && currentPage < pages.length) {
+                pages[currentPage].classList.add('turned');
+                currentPage++;
+            } else if (direction === 'prev' && currentPage > 0) {
+                currentPage--;
+                pages[currentPage].classList.remove('turned');
+            } else if (direction === 'prev' && currentPage === 0) {
+                closeBook();
+                return;
+            }
+            
+            setTimeout(() => {
+                isAnimating = false;
+            }, 1000);
+        }
+
+        // Event Listeners
+        cover.addEventListener('click', openBook);
+
+        document.addEventListener('click', (e) => {
+            if (isAnimating || (!isBookOpen && !e.target.classList.contains('cover'))) return;
+            
+            const windowWidth = window.innerWidth;
+            const clickX = e.clientX;
+            const middleX = windowWidth / 2;
+
+            // If clicking the left side of the window, go to the previous page or close the book
+            if (clickX < middleX) {
+                if (currentPage === 0) {
+                    closeBook(); // Close the book if it's on the first page
+                } else {
+                    turnPage('prev');
+                }
+            } else {
+                turnPage('next'); // Go to the next page if clicking the right side
+            }
+        });
+
+        // Initialize the book
+        initializeBook();
+    </script>
+</body>
+</html>
